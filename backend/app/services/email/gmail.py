@@ -30,19 +30,35 @@ def _client_config() -> dict[str, Any]:
     }
 
 
-def build_auth_url(state: str) -> str:
+def build_auth_url(state: str) -> tuple[str, str | None]:
     s = get_settings()
-    flow = Flow.from_client_config(_client_config(), scopes=GMAIL_SCOPES, state=state)
+    flow = Flow.from_client_config(
+        _client_config(),
+        scopes=GMAIL_SCOPES,
+        state=state,
+        autogenerate_code_verifier=True,
+    )
     flow.redirect_uri = s.google_redirect_uri
     auth_url, _ = flow.authorization_url(
         access_type="offline", include_granted_scopes="true", prompt="consent"
     )
-    return auth_url
+    return auth_url, flow.code_verifier
 
 
-def exchange_code_for_token(code: str, db: Session) -> OAuthToken:
+def exchange_code_for_token(
+    code: str,
+    db: Session,
+    *,
+    state: str | None = None,
+    code_verifier: str | None = None,
+) -> OAuthToken:
     s = get_settings()
-    flow = Flow.from_client_config(_client_config(), scopes=GMAIL_SCOPES)
+    flow = Flow.from_client_config(
+        _client_config(),
+        scopes=GMAIL_SCOPES,
+        state=state,
+        code_verifier=code_verifier,
+    )
     flow.redirect_uri = s.google_redirect_uri
     flow.fetch_token(code=code)
     creds = flow.credentials

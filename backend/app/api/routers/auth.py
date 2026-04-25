@@ -13,7 +13,7 @@ from app.services.email import gmail
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 # In-memory state cache (single-user MVP). Migrate to Redis if multi-user.
-_oauth_states: dict[str, bool] = {}
+_oauth_states: dict[str, dict[str, str | None]] = {}
 
 
 @router.get("/gmail/start")
@@ -22,8 +22,9 @@ def gmail_start():
     if not s.google_client_id or not s.google_client_secret:
         raise HTTPException(500, "GOOGLE_CLIENT_ID / SECRET not configured")
     state = secrets.token_urlsafe(16)
-    _oauth_states[state] = True
-    return RedirectResponse(gmail.build_auth_url(state))
+    auth_url, code_verifier = gmail.build_auth_url(state)
+    _oauth_states[state] = {"code_verifier": code_verifier}
+    return RedirectResponse(auth_url)
 
 
 @router.get("/gmail/callback")
@@ -32,10 +33,15 @@ def gmail_callback(
     state: str = Query(...),
     db: Session = Depends(get_db),
 ):
-    if state not in _oauth_states:
+    oauth_state = _oauth_states.pop(state, None)
+    if oauth_state is None:
         raise HTTPException(400, "invalid state")
-    _oauth_states.pop(state, None)
-    token = gmail.exchange_code_for_token(code, db)
+    token = gmail.exchange_code_for_token(
+        code,
+        db,
+        state=state,
+        code_verifier=oauth_state.get("code_verifier"),
+    )
     return {"connected": True, "user_email": token.user_email}
 
 
