@@ -26,6 +26,10 @@ class PostingStatus(str, enum.Enum):
     FAILED = "failed"
 
 
+def _enum_values(enum_cls: type[enum.Enum]) -> list[str]:
+    return [member.value for member in enum_cls]
+
+
 class JobPosting(Base):
     """Discovered job posting before/at the time of application."""
 
@@ -53,7 +57,7 @@ class JobPosting(Base):
     score: Mapped[float | None] = mapped_column(Float, nullable=True)
     score_breakdown: Mapped[dict] = mapped_column(JSONB, default=dict)
     status: Mapped[PostingStatus] = mapped_column(
-        Enum(PostingStatus, name="posting_status"),
+        Enum(PostingStatus, name="posting_status", values_callable=_enum_values),
         default=PostingStatus.DISCOVERED,
         index=True,
     )

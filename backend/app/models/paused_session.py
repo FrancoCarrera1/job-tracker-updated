@@ -21,6 +21,10 @@ class PausedReason(str, enum.Enum):
     APPROVAL_REQUIRED = "approval_required"
 
 
+def _enum_values(enum_cls: type[enum.Enum]) -> list[str]:
+    return [member.value for member in enum_cls]
+
+
 class PausedSession(Base):
     """An automation run that paused for human input.
 
@@ -41,7 +45,9 @@ class PausedSession(Base):
     )
 
     ats: Mapped[str] = mapped_column(String(32))
-    reason: Mapped[PausedReason] = mapped_column(Enum(PausedReason, name="paused_reason"))
+    reason: Mapped[PausedReason] = mapped_column(
+        Enum(PausedReason, name="paused_reason", values_callable=_enum_values)
+    )
     message: Mapped[str] = mapped_column(Text)
     pending_questions: Mapped[list] = mapped_column(JSONB, default=list)
     state: Mapped[dict] = mapped_column(JSONB, default=dict)

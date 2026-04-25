@@ -22,6 +22,7 @@ from app.models import (
     PausedSession,
     PostingStatus,
 )
+from app.services.sources.greenhouse_board import _normalize_identifier as normalize_greenhouse_identifier
 
 router = APIRouter(prefix="/api/automation", tags=["automation"])
 
@@ -68,7 +69,10 @@ def create_job_source(payload: JobSourceIn, db: Session = Depends(get_db)) -> Jo
             400,
             f"Source kind '{payload.kind}' requires explicit ToS acknowledgement.",
         )
-    src = JobSource(**payload.model_dump())
+    data = payload.model_dump()
+    if payload.kind == "greenhouse_board":
+        data["identifier"] = normalize_greenhouse_identifier(payload.identifier)
+    src = JobSource(**data)
     db.add(src)
     db.commit()
     db.refresh(src)

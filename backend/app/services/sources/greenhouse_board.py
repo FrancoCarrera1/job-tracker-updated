@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import re
 from html import unescape
+from urllib.parse import urlparse
 
 import httpx
 import structlog
@@ -33,11 +34,17 @@ log = structlog.get_logger()
 @register_source("greenhouse_board")
 class GreenhouseBoardSource(JobSourcePlugin):
     def fetch(self, identifier: str, config: dict) -> list[DiscoveredPosting]:
-        url = f"https://boards-api.greenhouse.io/v1/boards/{identifier}/jobs?content=true"
+        board_id = _normalize_identifier(identifier)
+        url = f"https://boards-api.greenhouse.io/v1/boards/{board_id}/jobs?content=true"
         with httpx.Client(timeout=15.0, headers={"User-Agent": "jobtracker/1.0"}) as client:
             r = client.get(url)
         if r.status_code != 200:
-            log.warning("source.greenhouse.error", status=r.status_code, company=identifier)
+            log.warning(
+                "source.greenhouse.error",
+                status=r.status_code,
+                company=identifier,
+                board_id=board_id,
+            )
             return []
         data = r.json()
         out: list[DiscoveredPosting] = []
@@ -50,7 +57,7 @@ class GreenhouseBoardSource(JobSourcePlugin):
                 DiscoveredPosting(
                     source="greenhouse_board",
                     source_id=str(job.get("id")),
-                    company=identifier,
+                    company=board_id,
                     role_title=job.get("title", ""),
                     job_url=job.get("absolute_url", ""),
                     ats="greenhouse",
@@ -78,6 +85,27 @@ _SKILL_VOCAB = [
     "postgres", "postgresql", "mysql", "redis", "kafka",
     "rhcsa", "rhce", "ckad", "cka", "security+", "aws saa", "aws sa",
 ]
+
+
+def _normalize_identifier(identifier: str) -> str:
+    raw = (identifier or "").strip()
+    if not raw:
+        return raw
+
+    trimmed = raw.split("?", 1)[0].split("#", 1)[0]
+    if "://" in trimmed:
+        parsed = urlparse(trimmed)
+        parts = [part for part in parsed.path.split("/") if part]
+        if parts:
+            return parts[0]
+        return parsed.netloc
+
+    parts = [part for part in trimmed.strip("/").split("/") if part]
+    if not parts:
+        return ""
+    if len(parts) >= 2 and "." in parts[0]:
+        return parts[1]
+    return parts[0]
 
 
 def _strip_html(html: str) -> str:

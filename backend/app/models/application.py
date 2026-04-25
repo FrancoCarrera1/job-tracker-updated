@@ -33,6 +33,10 @@ class ApplicationMethod(str, enum.Enum):
     MANUAL = "manual"
 
 
+def _enum_values(enum_cls: type[enum.Enum]) -> list[str]:
+    return [member.value for member in enum_cls]
+
+
 class Application(Base):
     __tablename__ = "applications"
 
@@ -50,11 +54,11 @@ class Application(Base):
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     method: Mapped[ApplicationMethod] = mapped_column(
-        Enum(ApplicationMethod, name="application_method"),
+        Enum(ApplicationMethod, name="application_method", values_callable=_enum_values),
         default=ApplicationMethod.MANUAL,
     )
     status: Mapped[ApplicationStatus] = mapped_column(
-        Enum(ApplicationStatus, name="application_status"),
+        Enum(ApplicationStatus, name="application_status", values_callable=_enum_values),
         default=ApplicationStatus.QUEUED,
         index=True,
     )
