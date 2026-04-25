@@ -60,9 +60,7 @@ class GreenhouseHandler(ATSHandler):
 
                 # Some Greenhouse pages render the form inline; others have an "Apply" button.
                 await self._click_apply_if_present(page)
-                await page.wait_for_selector(
-                    "form#application_form, form[action*='greenhouse']", timeout=15_000
-                )
+                await self._wait_for_application_surface(page)
 
                 if await self.detect_captcha(page):
                     shot = await self.screenshot(page, ctx, "captcha")
@@ -141,6 +139,7 @@ class GreenhouseHandler(ATSHandler):
         for sel in [
             "a:has-text('Apply for this Job')",
             "a:has-text('Apply Now')",
+            "a:has-text('Apply')",
             "button:has-text('Apply')",
             "a#apply_button",
         ]:
@@ -149,22 +148,69 @@ class GreenhouseHandler(ATSHandler):
                 if await el.count() and await el.is_visible():
                     await el.click(timeout=3_000)
                     await page.wait_for_load_state("domcontentloaded")
+                    await page.wait_for_timeout(500)
                     return
             except (PWTimeout, Exception):
                 continue
 
+    async def _wait_for_application_surface(self, page: Page) -> None:
+        selectors = [
+            "form#application_form",
+            "form[action*='greenhouse']",
+            "text=Apply for this job",
+            "text=Autofill with MyGreenhouse",
+            "input#first_name",
+            "input[name='first_name']",
+            "input[name*='first_name']",
+            "input#email",
+            "input[name='email']",
+        ]
+        for sel in selectors:
+            try:
+                await page.locator(sel).first.wait_for(state="visible", timeout=3_000)
+                return
+            except PWTimeout:
+                continue
+        raise PWTimeout(
+            "Timed out waiting for a recognizable Greenhouse application surface."
+        )
+
     async def _fill_basic_fields(self, page: Page, ctx: ApplyContext, answers: dict) -> None:
         p = ctx.profile
         first, last = _split_name(p.get("full_name", ""))
-        await self._fill_input(page, "input#first_name", first, answers, "first_name")
-        await self._fill_input(page, "input#last_name", last, answers, "last_name")
-        await self._fill_input(page, "input#email", p.get("email", ""), answers, "email")
+        await self._fill_input(
+            page,
+            "input#first_name, input[name='first_name'], input[name*='first_name']",
+            first,
+            answers,
+            "first_name",
+        )
+        await self._fill_input(
+            page,
+            "input#last_name, input[name='last_name'], input[name*='last_name']",
+            last,
+            answers,
+            "last_name",
+        )
+        await self._fill_input(
+            page,
+            "input#email, input[name='email'], input[name*='email']",
+            p.get("email", ""),
+            answers,
+            "email",
+        )
         if p.get("phone"):
-            await self._fill_input(page, "input#phone", p["phone"], answers, "phone")
+            await self._fill_input(
+                page,
+                "input#phone, input[name='phone'], input[name*='phone'], input[type='tel']",
+                p["phone"],
+                answers,
+                "phone",
+            )
         if p.get("location"):
             await self._fill_input(
                 page,
-                "input#job_application_location, input[name*='location']",
+                "input#job_application_location, input[name*='location'], input[aria-label*='Location']",
                 p["location"],
                 answers,
                 "location",
@@ -172,7 +218,7 @@ class GreenhouseHandler(ATSHandler):
         if p.get("linkedin_url"):
             await self._fill_input(
                 page,
-                "input[id*='urls'][id*='LinkedIn']",
+                "input[id*='urls'][id*='LinkedIn'], input[name*='linkedin'], input[aria-label*='LinkedIn']",
                 p["linkedin_url"],
                 answers,
                 "linkedin",
