@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jobtracker-config
+  namespace: jobtracker
+data:
+  APP_ENV: "prod"
+  APP_BASE_URL: "http://backend:8000"
+  DASHBOARD_BASE_URL: "http://frontend:5173"
+  POSTGRES_USER: "jobtracker"
+  POSTGRES_DB: "jobtracker"
+  DATABASE_URL: "postgresql+psycopg://jobtracker:$(POSTGRES_PASSWORD)@postgres:5432/jobtracker"
+  REDIS_URL: "redis://redis:6379/0"
+  CELERY_BROKER_URL: "redis://redis:6379/1"
+  CELERY_RESULT_BACKEND: "redis://redis:6379/2"
+  LLM_PROVIDER: "anthropic"
+  LLM_MODEL: "claude-sonnet-4-6"
+  GOOGLE_REDIRECT_URI: "http://localhost:8000/api/auth/gmail/callback"
+  DRY_RUN: "true"
+  PER_JOB_APPROVAL: "true"
+  KILL_SWITCH: "false"
+  MAX_APPS_PER_DAY: "20"
+  MAX_APPS_PER_PLATFORM_PER_DAY: "10"
+  MAX_APPS_PER_COMPANY_PER_DAY: "1"
+  ENABLE_LINKEDIN: "false"
+  ENABLE_INDEED: "false"
+  ENABLE_GREENHOUSE: "true"
+  ENABLE_LEVER: "true"
+  ENABLE_CLEARANCEJOBS: "true"

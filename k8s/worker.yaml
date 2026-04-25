@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: jobtracker
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: worker } }
+  template:
+    metadata:
+      labels: { app: worker }
+    spec:
+      containers:
+        - name: worker
+          image: ghcr.io/your-user/jobtracker-backend:latest
+          command:
+            - celery
+            - -A
+            - app.workers.celery_app.celery_app
+            - worker
+            - --loglevel=info
+            - --concurrency=2
+          envFrom:
+            - configMapRef: { name: jobtracker-config }
+            - secretRef:    { name: jobtracker-secrets }
+          volumeMounts:
+            - { name: storage, mountPath: /app/storage }
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: jobtracker-storage
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: beat
+  namespace: jobtracker
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: beat } }
+  template:
+    metadata:
+      labels: { app: beat }
+    spec:
+      containers:
+        - name: beat
+          image: ghcr.io/your-user/jobtracker-backend:latest
+          command:
+            - celery
+            - -A
+            - app.workers.celery_app.celery_app
+            - beat
+            - --loglevel=info
+          envFrom:
+            - configMapRef: { name: jobtracker-config }
+            - secretRef:    { name: jobtracker-secrets }
