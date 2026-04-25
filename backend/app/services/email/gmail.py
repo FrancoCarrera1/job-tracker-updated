@@ -39,9 +39,7 @@ def build_auth_url(state: str) -> tuple[str, str | None]:
         autogenerate_code_verifier=True,
     )
     flow.redirect_uri = s.google_redirect_uri
-    auth_url, _ = flow.authorization_url(
-        access_type="offline", include_granted_scopes="true", prompt="consent"
-    )
+    auth_url, _ = flow.authorization_url(access_type="offline", prompt="consent")
     return auth_url, flow.code_verifier
 
 
