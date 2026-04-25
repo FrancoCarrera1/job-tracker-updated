@@ -94,6 +94,16 @@ credentials below are only needed for the features that use them.
 Set `LLM_PROVIDER` to `anthropic`, `openai`, or `ollama`, then fill in the
 matching credential or base URL.
 
+For a local OpenAI-compatible server, point the app at the full `/v1` endpoint.
+`OPENAI_API_KEY` can be left blank in that setup.
+
+```bash
+LLM_PROVIDER=openai
+LLM_MODEL=your-local-model-name
+OPENAI_BASE_URL=http://172.22.192.1:1234/v1
+OPENAI_API_KEY=
+```
+
 For Ollama:
 
 ```bash

@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     llm_model: str = "claude-sonnet-4-6"
     anthropic_api_key: str = ""
     openai_api_key: str = ""
+    openai_base_url: str = ""
     ollama_base_url: str = "http://host.docker.internal:11434"
 
     telegram_bot_token: str = ""

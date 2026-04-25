@@ -19,9 +19,13 @@ def get_llm() -> LLMProvider:
     if s.llm_provider == "openai":
         from app.services.llm.openai_provider import OpenAIProvider
 
-        if not s.openai_api_key:
-            raise RuntimeError("OPENAI_API_KEY not set")
-        return OpenAIProvider(api_key=s.openai_api_key, model=s.llm_model)
+        if not s.openai_api_key and not s.openai_base_url:
+            raise RuntimeError("OPENAI_API_KEY or OPENAI_BASE_URL must be set")
+        return OpenAIProvider(
+            api_key=s.openai_api_key,
+            model=s.llm_model,
+            base_url=s.openai_base_url or None,
+        )
 
     if s.llm_provider == "ollama":
         from app.services.llm.ollama_provider import OllamaProvider

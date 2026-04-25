@@ -17,20 +17,43 @@ from app.services.llm.base import (
 class OpenAIProvider:
     name = "openai"
 
-    def __init__(self, api_key: str, model: str = "gpt-4o-mini") -> None:
-        self.client = OpenAI(api_key=api_key)
+    def __init__(
+        self,
+        api_key: str = "",
+        model: str = "gpt-4o-mini",
+        base_url: str | None = None,
+    ) -> None:
+        self.base_url = base_url.rstrip("/") if base_url else None
+        client_kwargs = {
+            # Local OpenAI-compatible servers often ignore auth but the SDK still
+            # expects a token-shaped value.
+            "api_key": api_key or "local-inference",
+        }
+        if self.base_url:
+            client_kwargs["base_url"] = self.base_url
+        self.client = OpenAI(**client_kwargs)
         self.model = model
 
     def answer_question(self, ctx: QuestionContext, profile: dict[str, Any]) -> AnswerResult:
         prompt = build_answer_prompt(ctx, profile)
-        resp = self.client.chat.completions.create(
-            model=self.model,
-            response_format={"type": "json_object"},
-            messages=[
+        payload = {
+            "model": self.model,
+            "messages": [
                 {"role": "system", "content": "You output strict JSON only."},
                 {"role": "user", "content": prompt},
             ],
-        )
+        }
+        try:
+            resp = self.client.chat.completions.create(
+                response_format={"type": "json_object"},
+                **payload,
+            )
+        except Exception:
+            if not self.base_url:
+                raise
+            resp = self.client.chat.completions.create(
+                **payload,
+            )
         return _parse_answer(resp.choices[0].message.content or "")
 
     def tailor_resume_summary(
