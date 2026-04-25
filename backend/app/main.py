@@ -5,6 +5,7 @@ import logging
 import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.routers import analytics, applications, auth, automation, profile
 from app.config import get_settings
@@ -40,6 +41,7 @@ app.include_router(profile.router)
 app.include_router(auth.router)
 app.include_router(automation.router)
 app.include_router(analytics.router)
+app.mount("/storage", StaticFiles(directory="/app/storage"), name="storage")
 
 
 @app.get("/")

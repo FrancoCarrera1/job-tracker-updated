@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from pathlib import PurePosixPath
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -150,12 +151,13 @@ def skip_posting(posting_id: UUID, db: Session = Depends(get_db)):
 
 @router.get("/paused", response_model=list[PausedSessionOut])
 def list_paused(db: Session = Depends(get_db)) -> list[PausedSession]:
-    return (
+    rows = (
         db.query(PausedSession)
         .filter(PausedSession.resolved.is_(False))
         .order_by(PausedSession.created_at.desc())
         .all()
     )
+    return [_serialize_paused(row, db) for row in rows]
 
 
 @router.get("/paused/{session_id}", response_model=PausedSessionOut)
@@ -163,7 +165,7 @@ def get_paused(session_id: UUID, db: Session = Depends(get_db)) -> PausedSession
     p = db.get(PausedSession, session_id)
     if p is None:
         raise HTTPException(404, "not found")
-    return p
+    return _serialize_paused(p, db)
 
 
 @router.post("/paused/{session_id}/resolve")
@@ -200,3 +202,34 @@ def resolve_paused(
             run_apply_for_posting.delay(str(posting.id))
 
     return {"resolved": True, "proceed": payload.proceed}
+
+
+def _serialize_paused(paused: PausedSession, db: Session) -> dict:
+    posting = db.get(JobPosting, paused.job_posting_id)
+    return {
+        "id": paused.id,
+        "job_posting_id": paused.job_posting_id,
+        "application_id": paused.application_id,
+        "ats": paused.ats,
+        "reason": paused.reason,
+        "message": paused.message,
+        "pending_questions": paused.pending_questions,
+        "screenshot_path": paused.screenshot_path,
+        "screenshot_url": _storage_url(paused.screenshot_path),
+        "job_url": (paused.state or {}).get("job_url") or (posting.job_url if posting else None),
+        "company": posting.company if posting else None,
+        "role_title": posting.role_title if posting else None,
+        "resolved": paused.resolved,
+        "created_at": paused.created_at,
+    }
+
+
+def _storage_url(path: str | None) -> str | None:
+    if not path:
+        return None
+    marker = "/storage/"
+    normalized = PurePosixPath(path).as_posix()
+    idx = normalized.find(marker)
+    if idx == -1:
+        return None
+    return normalized[idx:]

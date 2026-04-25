@@ -24,6 +24,12 @@ export const api = {
   del: <T>(path: string) => req<T>(path, { method: "DELETE" }),
 };
 
+export function apiUrl(path?: string): string | undefined {
+  if (!path) return undefined;
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  return `${BASE}${path}`;
+}
+
 export type ApplicationStatus =
   | "queued"
   | "applied"
@@ -61,6 +67,9 @@ export interface PausedSession {
   ats: string;
   reason: string;
   message: string;
+  company?: string;
+  role_title?: string;
+  job_url?: string;
   pending_questions: Array<{
     question: string;
     field_type: string;
@@ -70,6 +79,7 @@ export interface PausedSession {
     llm_rationale?: string;
   }>;
   screenshot_path?: string;
+  screenshot_url?: string;
   resolved: boolean;
   created_at: string;
 }

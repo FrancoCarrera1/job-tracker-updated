@@ -132,9 +132,12 @@ class PausedSessionOut(BaseModel):
     message: str
     pending_questions: list
     screenshot_path: str | None
+    screenshot_url: str | None = None
+    job_url: str | None = None
+    company: str | None = None
+    role_title: str | None = None
     resolved: bool
     created_at: datetime
-    model_config = {"from_attributes": True}
 
 
 class PausedResolution(BaseModel):

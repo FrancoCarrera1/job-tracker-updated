@@ -20,7 +20,11 @@ export default function Paused() {
               <div className="flex justify-between">
                 <div>
                   <div className="text-xs uppercase text-amber-300">{p.reason}</div>
-                  <div className="text-sm mt-1">{p.message}</div>
+                  <div className="text-sm mt-1 font-medium">
+                    {p.role_title || "Paused application"}
+                    {p.company ? ` @ ${p.company}` : ""}
+                  </div>
+                  <div className="text-sm mt-1 text-zinc-300">{p.message}</div>
                   <div className="text-xs text-zinc-500 mt-1">
                     ATS: {p.ats} · {new Date(p.created_at).toLocaleString()}
                   </div>

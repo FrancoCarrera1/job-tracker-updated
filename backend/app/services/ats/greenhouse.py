@@ -67,7 +67,10 @@ class GreenhouseHandler(ATSHandler):
                     screenshots.append(shot)
                     raise PausedException(
                         reason="captcha",
-                        message="Greenhouse loaded a CAPTCHA — solve it and resume.",
+                        message=(
+                            "Greenhouse hit a CAPTCHA on the live application. "
+                            "Review the screenshot, open the posting, and retry when ready."
+                        ),
                         state={"job_url": ctx.job_url, "screenshot": shot},
                     )
 
